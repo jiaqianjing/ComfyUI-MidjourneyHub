@@ -1,0 +1,39 @@
+[project]
+name = "comfyui-midjourneyhub"
+version = "0.1.0"
+description = "A ComfyUI custom node for integrating with Midjourney API"
+authors = [
+    {name = "Qianjing Jia", email = "jiaqianjing@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch",
+    "numpy",
+    "Pillow",
+    "requests",
+]
+
+[project.urls]
+Repository = "https://github.com/jiaqianjing/ComfyUI-MidjourneyHub"
+
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["comfyui_midjourneyhub"]
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.comfy]
+PublisherId = "jiaqianjing"
+DisplayName = "ComfyUI-MidjourneyHub"
+Icon = ""
