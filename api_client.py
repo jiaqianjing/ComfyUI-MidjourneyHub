@@ -135,3 +135,59 @@ class MJClient:
             logger.error(f"Error downloading image from URL {url}: {str(e)}")
             raise
 
+    def batch_upscale_or_vary(self, task_id, actions=["U1", "U2", "U3", "U4"]):
+        """
+        Batch process multiple upscale/vary tasks in parallel
+        Args:
+            task_id: The original task ID
+            actions: List of actions to perform (e.g. ["U1", "U2", "U3", "U4"])
+        Returns:
+            List of images
+        """
+        try:
+            # First get the buttons for the original task
+            _, _, buttons = self.sync_mj_status(task_id)
+            
+            # Submit all tasks first
+            subtask_ids = []
+            for action in actions:
+                try:
+                    custom_id = buttons[action]
+                    url = f"{self.api_url}/mj/submit/action"
+                    payload = json.dumps({
+                        "chooseSameChannel": True,
+                        "customId": custom_id,
+                        "taskId": task_id,
+                        "notifyHook": "",
+                        "state": ""
+                    })
+                    headers = {
+                        'Authorization': 'Bearer {}'.format(self.api_key),
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                    response = requests.post(url, headers=headers, data=payload)
+                    response.raise_for_status()
+                    result = response.json()
+                    subtask_id = result.get("result", None)
+                    if subtask_id:
+                        subtask_ids.append((action, subtask_id))
+                        logger.debug(f"Submitted {action} task: {subtask_id}")
+                except Exception as e:
+                    logger.error(f"Error submitting {action} task: {e}")
+                    continue
+            
+            # Then wait for all results
+            results = []
+            for action, subtask_id in subtask_ids:
+                try:
+                    image, _, _ = self.sync_mj_status(subtask_id)
+                    results.append(image)
+                    logger.debug(f"Completed {action} task: {subtask_id}")
+                except Exception as e:
+                    logger.error(f"Error processing {action} task {subtask_id}: {e}")
+                    continue
+                    
+            return results
+        except Exception as e:
+            logger.error(f"Error during batch upscale/vary: {e}")
+            raise
