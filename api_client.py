@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 from .utils import init_logger, load_config
+import asyncio
+import aiohttp
 
 logger = init_logger()
 config = load_config()
@@ -18,7 +20,7 @@ class MJClient:
         self.api_key = config['MIDJOURNEY_API']['api_key']
 
 
-    def imagine(self, text_prompt) -> str:
+    async def imagine(self, text_prompt) -> str:
         """
         return task_id
         """
@@ -36,36 +38,35 @@ class MJClient:
             'Content-Type': 'application/json; charset=utf-8'
         }
         try:
-            """ response body example:
-            { 
-                "code":1,
-                "description":"In queue, there are 9 tasks ahead",
-                "result":"1732502563006031",
-                "properties":
-                    {
-                        "numberOfQueues":9,
-                        "discordChannelId":"1300478254200782858",
-                        "discordInstanceId":"1579527570573582336"
-                    }
-            }
-            """
-            response = requests.post(url, headers=headers, data=payload)
-            result = response.json()
-            logger.debug(f"Imagine response: {result}")
-            return result.get("result", None)
-        except requests.exceptions.RequestException as e:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, data=payload) as response:
+                    response.raise_for_status()
+                    # 首先尝试读取原始文本
+                    text = await response.text()
+                    try:
+                        # 尝试将文本解析为 JSON
+                        result = json.loads(text)
+                    except json.JSONDecodeError:
+                        # 如果不是 JSON 格式，直接使用文本作为结果
+                        logger.debug(f"Response is plain text: {text}")
+                        result = {"result": text.strip()}
+                    
+                    logger.debug(f"Imagine response: {result}")
+                    return result.get("result", None)
+        except Exception as e:
             logger.error(f"Error during Imagine: {e}")
             raise
 
-    def upscale_or_vary(self, task_id="", action="U1") -> str:
+    async def upscale_or_vary(self, task_id="", action="U1"):
         """
-        return subtask_id 
+        执行单个放大或变体操作
+        return: image
         """
         try:
             logger.debug(f"Upscale/Vary with task_id: {task_id}, action: {action}")
-            _, _, buttos = self.sync_mj_status(task_id)
-            logger.debug(f"Upscale/Vary with buttons: {buttos}")
-            custom_id = buttos[action] 
+            _, _, buttons = await self.sync_mj_status(task_id)
+            logger.debug(f"Upscale/Vary with buttons: {buttons}")
+            custom_id = buttons[action] 
             url = f"{self.api_url}/mj/submit/action"
             payload = json.dumps({
                 "chooseSameChannel": True,
@@ -78,114 +79,156 @@ class MJClient:
                 'Authorization': 'Bearer {}'.format(self.api_key),
                 'Content-Type': 'application/json; charset=utf-8'
             }
-            response = requests.post(url, headers=headers, data=payload)
-            response.raise_for_status()
-            result = response.json()
-            logger.debug(f"Upscale/Vary response: {result}")
-            return result.get("result", None)
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, data=payload) as response:
+                    response.raise_for_status()
+                    # 首先读取原始文本
+                    text = await response.text()
+                    try:
+                        # 尝试将文本解析为 JSON
+                        result = json.loads(text)
+                    except json.JSONDecodeError:
+                        # 如果不是 JSON 格式，直接使用文本作为结果
+                        logger.debug(f"Response is plain text: {text}")
+                        result = {"result": text.strip()}
+                    
+                    logger.debug(f"Upscale/Vary response: {result}")
+                    subtask_id = result.get("result", None)
+                    if not subtask_id:
+                        raise ValueError("Failed to get subtask_id")
+                    
+                    # 等待结果并只返回图片
+                    image, _, _ = await self.sync_mj_status(task_id=subtask_id)
+                    return image
+                
         except Exception as e:
             logger.error(f"Error during Upscale/Vary: {e}")
             raise
 
-    def sync_mj_status(self, task_id):
+    async def sync_mj_status(self, task_id):
         """
+        异步轮询任务状态
         return image, task_id, buttons 
         """
         try:
-            while True:
-                url = f"{self.api_url}/mj/task/{task_id}/fetch"
-                headers = {
-                    'Authorization': 'Bearer {}'.format(self.api_key),
-                    'Content-Type': 'application/json; charset=utf-8'
-                }
-                response = requests.get(url, headers=headers)
-                response.raise_for_status()
-                data = response.json()
-                logger.debug(f"Fetch response: {data}")
-                status = data['status']
-                if status == 'SUCCESS':
-                    img = None
-                    if 'imageUrl' in data:
-                        img = self.download_image(data['imageUrl'])
-                    if 'buttons' in data:
-                        buttons = {}
-                        for button in data['buttons']:
-                            # Example: actions = { "U1": "MJ::JOB::upsample::1::2452c896-1085-4ac3-b3fe-276e86207480" }
-                            buttons[button['label']] = button['customId']
-                    return img, task_id, buttons
-                elif status == 'FAILED':
-                    raise Exception(f"Task failed: {data.get('failReason', 'Unknown error')}")
-                elif status in ['', 'SUBMITTED', 'IN_PROGRESS', 'NOT_START']:
-                    logger.info(f"Task status: {status}, progress: {data.get('progress', 'Unknown')}")
-                    time.sleep(3)  # Wait for 3 seconds before checking again
-                else:
-                    raise Exception(f"Unknown task status: {data['status']}") 
+            async with aiohttp.ClientSession() as session:
+                while True:
+                    url = f"{self.api_url}/mj/task/{task_id}/fetch"
+                    headers = {
+                        'Authorization': f'Bearer {self.api_key}',
+                        'Content-Type': 'application/json; charset=utf-8'
+                    }
+                    
+                    async with session.get(url, headers=headers) as response:
+                        response.raise_for_status()
+                        # 首先读取原始文本
+                        text = await response.text()
+                        try:
+                            # 尝试将文本解析为 JSON
+                            data = json.loads(text)
+                        except json.JSONDecodeError:
+                            logger.debug(f"Response is plain text: {text}")
+                            raise ValueError(f"Expected JSON response but got: {text}")
+                        
+                        logger.debug(f"Fetch response: {data}")
+                        
+                        status = data['status']
+                        if status == 'SUCCESS':
+                            img = None
+                            if 'imageUrl' in data:
+                                img = await self.download_image(data['imageUrl'])
+                            if 'buttons' in data:
+                                buttons = {
+                                    button['label']: button['customId'] 
+                                    for button in data['buttons']
+                                }
+                            return img, task_id, buttons
+                        
+                        elif status == 'FAILED':
+                            raise Exception(f"Task failed: {data.get('failReason', 'Unknown error')}")
+                        
+                        elif status in ['', 'SUBMITTED', 'IN_PROGRESS', 'NOT_START']:
+                            logger.info(f"Task status: {status}, progress: {data.get('progress', 'Unknown')}")
+                            await asyncio.sleep(3)  # 异步等待3秒
+                        
+                        else:
+                            raise Exception(f"Unknown task status: {data['status']}")
+                        
         except Exception as e:
             logger.error(f"Error during sync_mj_status: {e}")
             raise
 
-    def download_image(self, url):
+    async def download_image(self, url):
+        """异步下载图片并转换为numpy数组"""
         logger.debug(f"Downloading image from URL: {url}")
         try:
-            response = requests.get(url)
-            response.raise_for_status()
-            img = Image.open(BytesIO(response.content))
-            return np.array(img)
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    image_data = await response.read()
+                    img = Image.open(BytesIO(image_data))
+                    return np.array(img)
         except Exception as e:
             logger.error(f"Error downloading image from URL {url}: {str(e)}")
             raise
 
-    def batch_upscale_or_vary(self, task_id, actions=["U1", "U2", "U3", "U4"]):
+    async def batch_upscale_or_vary(self, task_id, actions=["U1", "U2", "U3", "U4"]):
         """
-        Batch process multiple upscale/vary tasks in parallel
-        Args:
-            task_id: The original task ID
-            actions: List of actions to perform (e.g. ["U1", "U2", "U3", "U4"])
-        Returns:
-            List of images
+        批量处理多个放大或变体任务
+        return: List[Image]
         """
         try:
             # First get the buttons for the original task
-            _, _, buttons = self.sync_mj_status(task_id)
+            _, _, buttons = await self.sync_mj_status(task_id)
             
             # Submit all tasks first
             subtask_ids = []
-            for action in actions:
-                try:
-                    custom_id = buttons[action]
-                    url = f"{self.api_url}/mj/submit/action"
-                    payload = json.dumps({
-                        "chooseSameChannel": True,
-                        "customId": custom_id,
-                        "taskId": task_id,
-                        "notifyHook": "",
-                        "state": ""
-                    })
-                    headers = {
-                        'Authorization': 'Bearer {}'.format(self.api_key),
-                        'Content-Type': 'application/json; charset=utf-8'
-                    }
-                    response = requests.post(url, headers=headers, data=payload)
-                    response.raise_for_status()
-                    result = response.json()
-                    subtask_id = result.get("result", None)
-                    if subtask_id:
-                        subtask_ids.append((action, subtask_id))
-                        logger.debug(f"Submitted {action} task: {subtask_id}")
-                except Exception as e:
-                    logger.error(f"Error submitting {action} task: {e}")
-                    continue
+            async with aiohttp.ClientSession() as session:
+                for action in actions:
+                    try:
+                        custom_id = buttons[action]
+                        url = f"{self.api_url}/mj/submit/action"
+                        payload = json.dumps({
+                            "chooseSameChannel": True,
+                            "customId": custom_id,
+                            "taskId": task_id,
+                            "notifyHook": "",
+                            "state": ""
+                        })
+                        headers = {
+                            'Authorization': 'Bearer {}'.format(self.api_key),
+                            'Content-Type': 'application/json; charset=utf-8'
+                        }
+                        async with session.post(url, headers=headers, data=payload) as response:
+                            response.raise_for_status()
+                            # 首先读取原始文本
+                            text = await response.text()
+                            try:
+                                # 尝试将文本解析为 JSON
+                                result = json.loads(text)
+                            except json.JSONDecodeError:
+                                logger.debug(f"Response is plain text: {text}")
+                                result = {"result": text.strip()}
+                            
+                            subtask_id = result.get("result", None)
+                            if subtask_id:
+                                subtask_ids.append((action, subtask_id))
+                                logger.debug(f"Submitted {action} task: {subtask_id}")
+                    except Exception as e:
+                        logger.error(f"Error submitting {action} task: {e}")
+                        continue
             
-            # Then wait for all results
+            # Then wait for all results in parallel
+            tasks = [self.sync_mj_status(subtask_id) for _, subtask_id in subtask_ids]
             results = []
-            for action, subtask_id in subtask_ids:
-                try:
-                    image, _, _ = self.sync_mj_status(subtask_id)
-                    results.append(image)
-                    logger.debug(f"Completed {action} task: {subtask_id}")
-                except Exception as e:
-                    logger.error(f"Error processing {action} task {subtask_id}: {e}")
+            completed_tasks = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for (action, subtask_id), task_result in zip(subtask_ids, completed_tasks):
+                if isinstance(task_result, Exception):
+                    logger.error(f"Error processing {action} task {subtask_id}: {task_result}")
                     continue
+                image, _, _ = task_result
+                results.append(image)
+                logger.debug(f"Completed {action} task: {subtask_id}")
                     
             return results
         except Exception as e:
