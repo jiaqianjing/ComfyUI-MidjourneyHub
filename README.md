@@ -2,6 +2,7 @@
 该节点可以在 ComfyUI 中使用各种主流商业模型绘图节点，目前后端是使用**云雾 API** 提供的 API 支持。可以通过这个链接进行注册和使用：[https://yunwu.ai/register?aff=ubgH](https://yunwu.ai/register?aff=ubgH)
 
 ## 更新
+* 2024.12.13 引入协程的方式改造原始同步方法，通过并发加快创建图片和同步状态的响应尤其是 [Batch Upsale/Variation] 节点;
 * 2024.12.10 支持 midjourney [Batch Upsale/Variation] 节点;
 * 2024.12.06 支持 midjourney [Imagine] 和 [Upsale/Variation] 节点;
 

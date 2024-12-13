@@ -57,49 +57,48 @@ class MJClient:
             logger.error(f"Error during Imagine: {e}")
             raise
 
+    async def _submit_upscale_vary_task(self, task_id, custom_id, session):
+        """封装提交放大/变体任务的通用逻辑"""
+        url = f"{self.api_url}/mj/submit/action"
+        payload = json.dumps({
+            "chooseSameChannel": True,
+            "customId": custom_id,
+            "taskId": task_id,
+            "notifyHook": "",
+            "state": ""
+        })
+        headers = {
+            'Authorization': f'Bearer {self.api_key}',
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+        
+        async with session.post(url, headers=headers, data=payload) as response:
+            response.raise_for_status()
+            text = await response.text()
+            try:
+                result = json.loads(text)
+            except json.JSONDecodeError:
+                logger.debug(f"Response is plain text: {text}")
+                result = {"result": text.strip()}
+            
+            return result.get("result", None)
+
     async def upscale_or_vary(self, task_id="", action="U1"):
         """
         执行单个放大或变体操作
         return: image
         """
         try:
-            logger.debug(f"Upscale/Vary with task_id: {task_id}, action: {action}")
             _, _, buttons = await self.sync_mj_status(task_id)
-            logger.debug(f"Upscale/Vary with buttons: {buttons}")
-            custom_id = buttons[action] 
-            url = f"{self.api_url}/mj/submit/action"
-            payload = json.dumps({
-                "chooseSameChannel": True,
-                "customId": custom_id,
-                "taskId": task_id,
-                "notifyHook": "",
-                "state": ""
-            })
-            headers = {
-                'Authorization': 'Bearer {}'.format(self.api_key),
-                'Content-Type': 'application/json; charset=utf-8'
-            }
+            custom_id = buttons[action]
+            
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, data=payload) as response:
-                    response.raise_for_status()
-                    # 首先读取原始文本
-                    text = await response.text()
-                    try:
-                        # 尝试将文本解析为 JSON
-                        result = json.loads(text)
-                    except json.JSONDecodeError:
-                        # 如果不是 JSON 格式，直接使用文本作为结果
-                        logger.debug(f"Response is plain text: {text}")
-                        result = {"result": text.strip()}
-                    
-                    logger.debug(f"Upscale/Vary response: {result}")
-                    subtask_id = result.get("result", None)
-                    if not subtask_id:
-                        raise ValueError("Failed to get subtask_id")
-                    
-                    # 等待结果并只返回图片
-                    image, _, _ = await self.sync_mj_status(task_id=subtask_id)
-                    return image
+                subtask_id = await self._submit_upscale_vary_task(task_id, custom_id, session)
+                if not subtask_id:
+                    raise ValueError("Failed to get subtask_id")
+                
+                image, _, _ = await self.sync_mj_status(task_id=subtask_id)
+                return image
                 
         except Exception as e:
             logger.error(f"Error during Upscale/Vary: {e}")
@@ -177,49 +176,24 @@ class MJClient:
         return: List[Image]
         """
         try:
-            # First get the buttons for the original task
             _, _, buttons = await self.sync_mj_status(task_id)
             
-            # Submit all tasks concurrently
             async def submit_task(action):
                 try:
                     custom_id = buttons[action]
-                    url = f"{self.api_url}/mj/submit/action"
-                    payload = json.dumps({
-                        "chooseSameChannel": True,
-                        "customId": custom_id,
-                        "taskId": task_id,
-                        "notifyHook": "",
-                        "state": ""
-                    })
-                    headers = {
-                        'Authorization': 'Bearer {}'.format(self.api_key),
-                        'Content-Type': 'application/json; charset=utf-8'
-                    }
-                    async with session.post(url, headers=headers, data=payload) as response:
-                        response.raise_for_status()
-                        text = await response.text()
-                        try:
-                            result = json.loads(text)
-                        except json.JSONDecodeError:
-                            logger.debug(f"Response is plain text: {text}")
-                            result = {"result": text.strip()}
-                        
-                        subtask_id = result.get("result", None)
-                        if subtask_id:
-                            logger.debug(f"Submitted {action} task: {subtask_id}")
-                            return action, subtask_id
+                    subtask_id = await self._submit_upscale_vary_task(task_id, custom_id, session)
+                    if subtask_id:
+                        logger.debug(f"Submitted {action} task: {subtask_id}")
+                        return action, subtask_id
                 except Exception as e:
                     logger.error(f"Error submitting {action} task: {e}")
                     return None
 
-            # 使用 gather 并发执行所有任务
             async with aiohttp.ClientSession() as session:
                 tasks = [submit_task(action) for action in actions]
                 results = await asyncio.gather(*tasks)
                 subtask_ids = [r for r in results if r is not None]
             
-            # Then wait for all results in parallel
             tasks = [self.sync_mj_status(subtask_id) for _, subtask_id in subtask_ids]
             results = []
             completed_tasks = await asyncio.gather(*tasks, return_exceptions=True)
