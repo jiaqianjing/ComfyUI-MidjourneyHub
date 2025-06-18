@@ -58,3 +58,25 @@
 
 ## 特别鸣谢
 1. [ComfyUI-MidjourneyNode-leoleexh](https://github.com/leoleelxh/ComfyUI-MidjourneyNode-leoleexh/tree/main) 提供了节点的布局和样式借鉴，感谢作者的贡献！
+
+## 📩 Disclaimer | 免责申明
+
+本工具仅供学习和研究使用，使用本工具所产生的任何后果由用户自行承担。 <br>
+
+This tool is only for learning and research purposes, and any consequences arising from the use of this tool are borne
+by the user.
+
+## 💰 Buy Me a Coffee | 请我喝杯咖啡
+
+<div align="center">
+  <table>
+    <tr>
+      <td>
+        <img src="./example/Alipay_20RMB.jpg" alt="buy_me_a_coffee" width="280"/><br>
+      </td>
+      <td>
+        <img src="./example/Wechat_20RMB.jpg" alt="buy_me_a_coffee" width="280"/><br>
+      </td>
+    </tr>
+  </table>
+</div>
