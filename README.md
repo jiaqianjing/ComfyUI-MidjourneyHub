@@ -2,10 +2,11 @@
 该节点可以在 ComfyUI 中使用各种主流商业模型绘图节点，目前后端是使用**云雾 API** 提供的 API 支持。可以通过这个链接进行注册和使用：[https://yunwu.ai/register?aff=ubgH](https://yunwu.ai/register?aff=ubgH)
 
 ## 更新
-* 2025.06.18 新增 midjourney **[Blend(Image Mix)]** 节点，可上传两张图进行融合，支持 `seed` 避免缓存;
+* 2025.06.18 新增 openai **[GPT Image Generate]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1` 根据提示词绘图;
+* 2025.06.18 新增 midjourney **[Midjourney Blend (Image Mix)]** 节点，可上传两张图进行融合，支持 `seed` 避免缓存;
 * 2024.12.13 引入协程的方式改造原始同步方法，通过并发加快创建图片和同步状态的响应尤其是 [Batch Upsale/Variation] 节点;
-* 2024.12.10 支持 midjourney **[Batch Upsale/Variation]** 节点;
-* 2024.12.06 支持 midjourney **[Imagine] 和 [Upsale/Variation]** 节点;
+* 2024.12.10 支持 midjourney **[Midjourney Batch Upscale/Variation]** 节点;
+* 2024.12.06 支持 midjourney **[MidjourneyImagineNode] 和 [Midjourney Upscale/Variation]** 节点;
 
 ## 当前价格
 
@@ -26,13 +27,27 @@
 2. [Imagine] 节点 + [Batch Upsale/Variation] 节点
 ![](./example/example_batch_upscale.png)
 
-3. **Blend(Image Mix)** 节点（两张图片融合）
+3. **Midjourney Blend (Image Mix)** 节点（两张图片融合）
     
     示例1:
     ![](./example/example_mj_blend_01.png)
 
     示例2:
     ![](./example/example_mj_blend_02.png)
+
+4. **GPT Image Generate** 节点生图（openai 最新的 SOTA 生图模型）
+    示例:
+    ![](./example/example_gpt_image_generation.png)
+
+
+## Troubleshooting
+1. 如何创建正确的分组 API 令牌（api_key）? 
+使用云雾API时，需要创建对应的 API 令牌（也就是 config.ini 的 api_key），API 令牌还有分组的概念，不同的组能调用模型的范围不同对应的价格也不同（倍率），具体可以通过这个链接查询：https://yunwu.ai/pricing。以 `gpt-image-1` 为例，目前仅支持 `纯AZ`、`官转`、`官转OpenAI`、`优质官转OpenAI`:
+    ![](./example/gpt_image_token_group.png)
+
+2. 如何查看费用使用情况？
+使用云雾API时，可以通过【网页控制台】--【日志管理】--【使用日志】入口查看作业消耗的费用和时间等信息:
+    ![](./example/yunwu_log.png)
 
 ## 特别鸣谢
 1. [ComfyUI-MidjourneyNode-leoleexh](https://github.com/leoleelxh/ComfyUI-MidjourneyNode-leoleexh/tree/main) 提供了节点的布局和样式借鉴，感谢作者的贡献！
