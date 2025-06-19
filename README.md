@@ -21,11 +21,11 @@
 ![](./example/config.png)
 * [注]：因为后端 API 使用的云雾 API，他们可能不定期修改域名（api_url）
 
-### 2. 工作流
-1. [Imagine] 节点 + [Upsale/Variation] 节点
+### 2. 工作流示例
+1. **MidjourneyImagineNode** 节点 + **Midjourney Upscale/Variation** 节点
 ![](./example/example.png)
 
-2. [Imagine] 节点 + [Batch Upsale/Variation] 节点
+2. **MidjourneyImagineNode** 节点 + **Midjourney Batch Upscale/Variation** 节点
 ![](./example/example_batch_upscale.png)
 
 3. **Midjourney Blend (Image Mix)** 节点（两张图片融合）
@@ -46,7 +46,7 @@
 
 ## Troubleshooting
 1. 如何创建正确的分组 API 令牌（api_key）? 
-使用云雾API时，需要创建对应的 API 令牌（也就是 config.ini 的 api_key），API 令牌还有分组的概念，不同的组能调用模型的范围不同对应的价格也不同（倍率），具体可以通过这个链接查询：https://yunwu.ai/pricing。以 `gpt-image-1` 为例，目前仅支持 `纯AZ`、`官转`、`官转OpenAI`、`优质官转OpenAI`:
+使用云雾API时，需要创建对应的 API 令牌（也就是 config.ini 的 api_key），API 令牌还有分组的概念，不同的组能调用模型的范围不同对应的价格也不同（倍率），具体可以通过这个链接查询：https://yunwu.ai/pricing 以 `gpt-image-1` 为例，目前仅支持 `纯AZ`、`官转`、`官转OpenAI`、`优质官转OpenAI`:
     ![](./example/gpt_image_token_group.png)
 
 2. 遇到以下报错信息：“当前分组 纯AZ 下对于模型 gpt-image-1 无可用渠道”。
