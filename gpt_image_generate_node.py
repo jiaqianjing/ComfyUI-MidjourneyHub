@@ -3,8 +3,8 @@ import base64
 import numpy as np
 from PIL import Image
 from io import BytesIO
-
-from openai import OpenAI
+import requests
+import json
 
 from .utils import load_config, init_logger
 
@@ -34,16 +34,6 @@ class GPTImageGenerateNode:
         if not self.api_key:
             raise ValueError("API key not found in config.ini under [GPT_IMAGE_API] section")
 
-        # 延迟初始化，避免在导入阶段占用资源
-        self._client = None
-
-    @property
-    def client(self):
-        if self._client is None:
-            # 在首次调用时创建 OpenAI 客户端
-            self._client = OpenAI(base_url=self.base_url, api_key=self.api_key)
-        return self._client
-
     # ---------- ComfyUI 接口定义 ----------
     @classmethod
     def INPUT_TYPES(cls):
@@ -52,7 +42,7 @@ class GPTImageGenerateNode:
                 "prompt": ("STRING", {"multiline": True, "default": ""}),
             },
             "optional": {
-                "model": (["gpt-image-1"], {"default": "gpt-image-1"}),
+                "model": (["gpt-image-1.5", "gpt-image-1"], {"default": "gpt-image-1.5"}),
                 "background": (["auto", "transparent", "opaque"], {"default": "auto"}),
                 "moderation": (["auto", "low"], {"default": "auto"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1}),
@@ -65,23 +55,25 @@ class GPTImageGenerateNode:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "generate"
-    CATEGORY = "image"
+    CATEGORY = "MidjourneyHub"
 
     # ---------- 主功能 ----------
-    def generate(self, prompt: str, model="gpt-image-1", background="auto", moderation="auto", n: int = 1,
+    def generate(self, prompt: str, model="gpt-image-1.5", background="auto", moderation="auto", n: int = 1,
                 output_format="png", output_compression: int = 100, quality="auto", size="auto"):
         """根据 prompt 调用 GPT-Image-1 生成图片。"""
         try:
-            # 组装调用参数（只传递用户显式设置或与默认不同的参数）
-            kwargs = {
+            url = f"{self.base_url}/images/generations"
+            
+            # 组装调用参数
+            payload_data = {
                 "prompt": prompt,
                 "model": model,
                 "n": n,
             }
 
-            # 仅 gpt-image-1 支持的参数，其他模型传递会被忽略或导致错误——因此按需添加
-            if model == "gpt-image-1":
-                kwargs.update({
+            # 仅 gpt-image-1系列 支持的参数
+            if model in ["gpt-image-1", "gpt-image-1.5"]:
+                payload_data.update({
                     "background": background,
                     "moderation": moderation,
                     "output_format": output_format,
@@ -89,14 +81,27 @@ class GPTImageGenerateNode:
                     "quality": quality,
                     "size": size,
                 })
+            
+            # 必须指定 response_format 为 b64_json 以便获取图片数据
+            payload_data["response_format"] = "b64_json"
 
-            response = self.client.images.generate(**kwargs)
-            if not response or not response.data:
-                raise RuntimeError("Empty response from GPT-Image-1 API")
+            payload = json.dumps(payload_data)
+            headers = {
+                'Accept': 'application/json',
+                'Authorization': f'Bearer {self.api_key}',
+                'Content-Type': 'application/json'
+            }
+
+            response = requests.post(url, headers=headers, data=payload)
+            response.raise_for_status() # 检查 HTTP 错误
+            
+            data = response.json()
+            if not data or 'data' not in data:
+                raise RuntimeError(f"Invalid response from GPT-Image-1 API: {response.text}")
 
             tensors = []
-            for item in response.data:
-                b64_data = item.b64_json
+            for item in data['data']:
+                b64_data = item.get('b64_json')
                 if not b64_data:
                     raise RuntimeError("Missing base64 image in response item")
 
@@ -113,4 +118,5 @@ class GPTImageGenerateNode:
             return (img_tensor,)
         except Exception as e:
             self.logger.error(f"Error in GPTImageGenerateNode: {str(e)}")
-            raise 
+            raise
+ 

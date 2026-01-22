@@ -3,8 +3,8 @@ import base64
 import numpy as np
 from PIL import Image
 from io import BytesIO
-
-from openai import OpenAI
+import requests
+import json
 
 from .utils import load_config, init_logger
 
@@ -36,14 +36,6 @@ class GPTImageEditNode:
         if not self.api_key:
             raise ValueError("API key not found in config.ini under [GPT_IMAGE_API] section")
 
-        self._client = None
-
-    @property
-    def client(self):
-        if self._client is None:
-            self._client = OpenAI(base_url=self.base_url, api_key=self.api_key)
-        return self._client
-
     # ---------- ComfyUI 接口定义 ----------
     @classmethod
     def INPUT_TYPES(cls):
@@ -57,7 +49,7 @@ class GPTImageEditNode:
                 "image3": ("IMAGE",),
                 "image4": ("IMAGE",),
                 "mask": ("MASK",),
-                "model": (["gpt-image-1", "dall-e-2"], {"default": "gpt-image-1"}),
+                "model": (["gpt-image-1.5", "gpt-image-1", "dall-e-2"], {"default": "gpt-image-1.5"}),
                 "background": (["auto", "transparent", "opaque"], {"default": "auto"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1}),
                 "output_format": (["png", "jpeg", "webp"], {"default": "png"}),
@@ -69,12 +61,12 @@ class GPTImageEditNode:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "edit"
-    CATEGORY = "image"
+    CATEGORY = "MidjourneyHub"
 
     # ---------- 辅助函数 ----------
     @staticmethod
-    def _tensor_to_bytesio(tensor: torch.Tensor) -> BytesIO:
-        """将 ComfyUI 的图像 Tensor 转换为 PNG 格式的 BytesIO 对象。"""
+    def _tensor_to_bytesio(tensor: torch.Tensor, format="PNG") -> BytesIO:
+        """将 ComfyUI 的图像 Tensor 转换为指定格式的 BytesIO 对象。"""
         if tensor.ndim == 4:
             tensor = tensor[0]
         
@@ -82,7 +74,7 @@ class GPTImageEditNode:
         img_pil = Image.fromarray(img_np)
         
         buffer = BytesIO()
-        img_pil.save(buffer, format="PNG")
+        img_pil.save(buffer, format=format)
         buffer.seek(0)
         return buffer
 
@@ -115,33 +107,43 @@ class GPTImageEditNode:
     # ---------- 主功能 ----------
     def edit(self, prompt: str, image1: torch.Tensor, image2: torch.Tensor = None, 
              image3: torch.Tensor = None, image4: torch.Tensor = None, mask: torch.Tensor = None,
-             model: str = "gpt-image-1", background: str = "auto", n: int = 1,
+             model: str = "gpt-image-1.5", background: str = "auto", n: int = 1,
              output_format: str = "png", output_compression: int = 100,
              quality: str = "auto", size: str = "auto"):
         """根据 prompt 和参考图片调用 API 生成新图片。"""
         try:
+            url = f"{self.base_url}/images/edits"
+
             # 收集所有有效的图像输入
             images = [img for img in [image1, image2, image3, image4] if img is not None]
             if not images:
                 raise ValueError("At least one image must be provided.")
 
-            # 将 Tensor 转换为 BytesIO 对象列表
-            image_files = [self._tensor_to_bytesio(img) for img in images]
-
-            # 构建 API 调用参数
-            kwargs = {
-                "prompt": prompt,
-                "model": model,
-                "image": image_files,
-                "n": n,
-            }
+            # 构建 multipart/form-data 的 files 参数
+            # 注意：test_api 示例中使用了多个 'image' 键，requests 的 files 参数支持 list of tuples
+            # 格式: ('field_name', ('filename', file_object, 'content_type'))
+            files = []
+            for idx, img in enumerate(images):
+                # 默认使用 PNG，如果 API 有特殊要求可以调整
+                file_obj = self._tensor_to_bytesio(img, format="PNG")
+                files.append(('image', (f'image{idx}.png', file_obj, 'image/png')))
 
             if mask is not None:
-                kwargs["mask"] = self._mask_tensor_to_bytesio(mask)
+                mask_obj = self._mask_tensor_to_bytesio(mask)
+                files.append(('mask', ('mask.png', mask_obj, 'image/png')))
+
+            # 构建其他参数 payload
+            # requests 的 files 和 data 配合使用时，data 中的字段会作为 form fields 发送
+            payload = {
+                "prompt": prompt,
+                "model": model,
+                "n": n,
+                "response_format": "b64_json" # 强制返回 base64
+            }
             
             # 仅 gpt-image-1 支持的参数
-            if model == "gpt-image-1":
-                kwargs.update({
+            if model in ["gpt-image-1", "gpt-image-1.5"]:
+                payload.update({
                     "background": background,
                     "output_format": output_format,
                     "output_compression": output_compression,
@@ -149,16 +151,24 @@ class GPTImageEditNode:
                     "size": size,
                 })
 
-            # 调用 API
-            response = self.client.images.edit(**kwargs)
+            headers = {
+                'Accept': 'application/json',
+                'Authorization': f'Bearer {self.api_key}'
+                # 'Content-Type': 'multipart/form-data' # requests 会自动添加 boundary，不要手动添加 Content-Type
+            }
 
-            if not response or not response.data:
-                raise RuntimeError("Empty response from the image editing API")
+            # 发送请求
+            response = requests.post(url, headers=headers, data=payload, files=files)
+            response.raise_for_status()
+
+            data = response.json()
+            if not data or 'data' not in data:
+                 raise RuntimeError(f"Invalid response from GPT-Image-1 API: {response.text}")
 
             # 处理返回的 base64 数据
             tensors = []
-            for item in response.data:
-                b64_data = item.b64_json
+            for item in data['data']:
+                b64_data = item.get('b64_json')
                 if not b64_data:
                     raise RuntimeError("No base64 image data in response")
 
@@ -178,4 +188,5 @@ class GPTImageEditNode:
             return (img_tensor,)
         except Exception as e:
             self.logger.error(f"Error in GPTImageEditNode: {str(e)}")
-            raise 
+            raise
+ 

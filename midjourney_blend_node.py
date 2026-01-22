@@ -7,6 +7,15 @@ import numpy as np
 import time
 
 from .api_client import MJClient
+from .utils import init_logger
+
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except ImportError:
+    pass  # nest_asyncio not installed, will use fallback
+
+logger = init_logger()
 
 
 class MidjourneyBlendNode:
@@ -47,7 +56,7 @@ class MidjourneyBlendNode:
     RETURN_TYPES = ("IMAGE", "STRING", "DICT")
     RETURN_NAMES = ("image", "task_id", "buttons")
     FUNCTION = "blend_images"
-    CATEGORY = "image"
+    CATEGORY = "MidjourneyHub"
 
     # ---------- 辅助函数 ----------
     @staticmethod
@@ -117,5 +126,5 @@ class MidjourneyBlendNode:
             return (img_tensor, task_id_fetched, buttons)
 
         except Exception as e:
-            print(f"Error in MidjourneyBlendNode: {str(e)}")
+            logger.error(f"Error in MidjourneyBlendNode: {str(e)}")
             raise 

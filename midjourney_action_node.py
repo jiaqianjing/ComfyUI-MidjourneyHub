@@ -1,6 +1,15 @@
 import torch
 import asyncio
 from .api_client import MJClient
+from .utils import init_logger
+
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except ImportError:
+    pass  # nest_asyncio not installed, will use fallback
+
+logger = init_logger()
 
 
 class MidjourneyActionNode:
@@ -18,7 +27,7 @@ class MidjourneyActionNode:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "upscale_or_vary"
-    CATEGORY = "image"
+    CATEGORY = "MidjourneyHub"
 
     def upscale_or_vary(self, task_id, action):
         try:
@@ -39,7 +48,7 @@ class MidjourneyActionNode:
 
             return (img_tensor,)
         except Exception as e:
-            print(f"Error in MidjourneyActionNode: {str(e)}")
+            logger.error(f"Error in MidjourneyActionNode: {str(e)}")
             raise
         
 
@@ -69,7 +78,7 @@ class MidjourneyBatchActionNode:
                 loop = asyncio.get_event_loop()
             except RuntimeError:
                 loop = asyncio.new_event_loop()
-                asyncio.set_event_loop()
+                asyncio.set_event_loop(loop)
 
             # 确定要执行的操作
             if batch_actions == "U1-U4":
@@ -95,6 +104,6 @@ class MidjourneyBatchActionNode:
                 flat_results.append(img_tensor)
             return tuple(flat_results)
         except Exception as e:
-            print(f"Error in MidjourneyBatchActionNode: {str(e)}")
+            logger.error(f"Error in MidjourneyBatchActionNode: {str(e)}")
             raise
 

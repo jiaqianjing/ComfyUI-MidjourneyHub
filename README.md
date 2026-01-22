@@ -2,6 +2,10 @@
 该节点可以在 ComfyUI 中使用各种主流商业模型绘图节点，目前后端是使用**云雾 API** 提供的 API 支持。可以通过这个链接进行注册和使用：[https://www.cocode.icu/](https://www.cocode.icu/)
 
 ## 更新
+* 2026.01.22 更新 openai **[GPT Image Edit]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1.5` 
+* 2026.01.22 更新 openai **[GPT Image Generate]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1.5` 
+* 2026.01.22 新增 Google **[Gemini Image Generate]** 节点，使用 Gemini 3 Pro Image Preview 模型根据提示词生图;
+* 2026.01.22 新增 Google **[Gemini Image Edit]** 节点，使用 Gemini 3 Pro Image Preview 模型根据提示词和参考图片进行编辑;
 * 2025.06.18 新增 openai **[GPT Image Edit]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1` 根据提示词和待修改的图片进行编辑;
 * 2025.06.18 新增 openai **[GPT Image Generate]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1` 根据提示词绘图;
 * 2025.06.18 新增 midjourney **[Midjourney Blend (Image Mix)]** 节点，可上传两张图进行融合，支持 `seed` 避免缓存;
@@ -43,6 +47,14 @@
 5. **GPT Image Edit** 节点编辑图（openai 最新的 SOTA 生图模型）
     示例:
     ![](./example/example_gpt_image_edit.png)
+
+6. **Gemini Image Generate** 节点生图（Google Gemini 3 Pro Image Preview 模型）
+    示例：
+    ![](./example/example_gemini_gen.png)
+
+7. **Gemini Image Edit** 节点编辑图（Google Gemini 3 Pro Image Preview 模型）
+    示例：
+    ![](./example/example_gemini_image_edit.png)
 
 ## Troubleshooting
 1. 如何创建正确的分组 API 令牌（api_key）? 

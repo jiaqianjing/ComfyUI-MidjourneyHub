@@ -1,6 +1,15 @@
 import torch
 from .api_client import MJClient
+from .utils import init_logger
 import asyncio
+
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except ImportError:
+    pass  # nest_asyncio not installed, will use fallback
+
+logger = init_logger()
 
 
 class MidjourneyImagineNode:
@@ -35,7 +44,7 @@ class MidjourneyImagineNode:
     RETURN_TYPES = ("IMAGE", "STRING", "DICT")
     RETURN_NAMES = ("image", "task_id", "buttons")
     FUNCTION = "generate"
-    CATEGORY = "image"
+    CATEGORY = "MidjourneyHub"
 
     def generate(self, prompt, base_model, version, image_ratio="1:1",
                 stylize=100, chaos=0, weird=0, tile=False, q2=False, sref="",
@@ -89,5 +98,5 @@ class MidjourneyImagineNode:
             return (img_tensor, task_id, buttons)
 
         except Exception as e:
-            print(f"Error in MidjourneyImagineNode: {str(e)}")
+            logger.error(f"Error in MidjourneyImagineNode: {str(e)}")
             raise
