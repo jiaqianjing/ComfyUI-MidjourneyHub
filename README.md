@@ -13,12 +13,6 @@
 * 2024.12.10 支持 midjourney **[Midjourney Batch Upscale/Variation]** 节点;
 * 2024.12.06 支持 midjourney **[MidjourneyImagineNode] 和 [Midjourney Upscale/Variation]** 节点;
 
-## 当前价格
-
-> 本项目不会产生任何费用，以下费用出自调用云雾 Midjourney API，总结：4格主图（mj_imagine）是 0.15元/张，基于主图放大后的子图(mj_upscale) 0.075元/张; 如果用批节点输出一张主图+四张放大子图，那么总费用是 0.15+0.075*4=0.45元/张，每张是 0.45/4=0.1125元/张（因为主图没啥用，所以不计入费用）
-
-* 云雾价格主页: [https://yunwu.ai/pricing](https://yunwu.ai/pricing)
-![](./example/pricing.png)
 
 ## 使用方法
 ### 1. 修改自己的 api_url/api_key
