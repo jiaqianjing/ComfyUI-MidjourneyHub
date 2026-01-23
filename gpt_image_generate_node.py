@@ -43,11 +43,7 @@ class GPTImageGenerateNode:
             },
             "optional": {
                 "model": (["gpt-image-1.5", "gpt-image-1"], {"default": "gpt-image-1.5"}),
-                "background": (["auto", "transparent", "opaque"], {"default": "auto"}),
-                "moderation": (["auto", "low"], {"default": "auto"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1}),
-                "output_format": (["png", "jpeg", "webp"], {"default": "png"}),
-                "output_compression": ("INT", {"default": 100, "min": 0, "max": 100, "step": 1}),
                 "quality": (["auto", "high", "medium", "low"], {"default": "auto"}),
                 "size": (["auto", "1024x1024", "1536x1024", "1024x1536"], {"default": "auto"}),
             }
@@ -58,32 +54,20 @@ class GPTImageGenerateNode:
     CATEGORY = "MidjourneyHub"
 
     # ---------- 主功能 ----------
-    def generate(self, prompt: str, model="gpt-image-1.5", background="auto", moderation="auto", n: int = 1,
-                output_format="png", output_compression: int = 100, quality="auto", size="auto"):
+    def generate(self, prompt: str, model="gpt-image-1.5", n: int = 1, quality="auto", size="auto"):
         """根据 prompt 调用 GPT-Image-1 生成图片。"""
         try:
             url = f"{self.base_url}/images/generations"
             
-            # 组装调用参数
+            # 组装调用参数 (仅使用 API 支持的参数)
             payload_data = {
                 "prompt": prompt,
                 "model": model,
                 "n": n,
+                "quality": quality,
+                "size": size,
+                "response_format": "b64_json"  # 必须指定以获取图片数据
             }
-
-            # 仅 gpt-image-1系列 支持的参数
-            if model in ["gpt-image-1", "gpt-image-1.5"]:
-                payload_data.update({
-                    "background": background,
-                    "moderation": moderation,
-                    "output_format": output_format,
-                    "output_compression": output_compression,
-                    "quality": quality,
-                    "size": size,
-                })
-            
-            # 必须指定 response_format 为 b64_json 以便获取图片数据
-            payload_data["response_format"] = "b64_json"
 
             payload = json.dumps(payload_data)
             headers = {
@@ -92,7 +76,7 @@ class GPTImageGenerateNode:
                 'Content-Type': 'application/json'
             }
 
-            response = requests.post(url, headers=headers, data=payload)
+            response = requests.post(url, headers=headers, data=payload, timeout=120)  # 120秒超时
             response.raise_for_status() # 检查 HTTP 错误
             
             data = response.json()

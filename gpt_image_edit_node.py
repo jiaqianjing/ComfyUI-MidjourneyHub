@@ -50,10 +50,7 @@ class GPTImageEditNode:
                 "image4": ("IMAGE",),
                 "mask": ("MASK",),
                 "model": (["gpt-image-1.5", "gpt-image-1", "dall-e-2"], {"default": "gpt-image-1.5"}),
-                "background": (["auto", "transparent", "opaque"], {"default": "auto"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1}),
-                "output_format": (["png", "jpeg", "webp"], {"default": "png"}),
-                "output_compression": ("INT", {"default": 100, "min": 0, "max": 100, "step": 1}),
                 "quality": (["auto", "high", "medium", "low"], {"default": "auto"}),
                 "size": (["auto", "1024x1024", "1536x1024", "1024x1536"], {"default": "auto"}),
             }
@@ -107,8 +104,7 @@ class GPTImageEditNode:
     # ---------- 主功能 ----------
     def edit(self, prompt: str, image1: torch.Tensor, image2: torch.Tensor = None, 
              image3: torch.Tensor = None, image4: torch.Tensor = None, mask: torch.Tensor = None,
-             model: str = "gpt-image-1.5", background: str = "auto", n: int = 1,
-             output_format: str = "png", output_compression: int = 100,
+             model: str = "gpt-image-1.5", n: int = 1,
              quality: str = "auto", size: str = "auto"):
         """根据 prompt 和参考图片调用 API 生成新图片。"""
         try:
@@ -132,24 +128,16 @@ class GPTImageEditNode:
                 mask_obj = self._mask_tensor_to_bytesio(mask)
                 files.append(('mask', ('mask.png', mask_obj, 'image/png')))
 
-            # 构建其他参数 payload
+            # 构建其他参数 payload (仅使用 API 支持的参数)
             # requests 的 files 和 data 配合使用时，data 中的字段会作为 form fields 发送
             payload = {
                 "prompt": prompt,
                 "model": model,
                 "n": n,
-                "response_format": "b64_json" # 强制返回 base64
+                "quality": quality,
+                "size": size,
+                "response_format": "b64_json"  # 强制返回 base64
             }
-            
-            # 仅 gpt-image-1 支持的参数
-            if model in ["gpt-image-1", "gpt-image-1.5"]:
-                payload.update({
-                    "background": background,
-                    "output_format": output_format,
-                    "output_compression": output_compression,
-                    "quality": quality,
-                    "size": size,
-                })
 
             headers = {
                 'Accept': 'application/json',
@@ -157,8 +145,8 @@ class GPTImageEditNode:
                 # 'Content-Type': 'multipart/form-data' # requests 会自动添加 boundary，不要手动添加 Content-Type
             }
 
-            # 发送请求
-            response = requests.post(url, headers=headers, data=payload, files=files)
+            # 发送请求 (120秒超时，图像生成较慢)
+            response = requests.post(url, headers=headers, data=payload, files=files, timeout=120)
             response.raise_for_status()
 
             data = response.json()
