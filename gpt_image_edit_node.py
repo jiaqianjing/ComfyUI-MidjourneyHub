@@ -49,7 +49,7 @@ class GPTImageEditNode:
                 "image3": ("IMAGE",),
                 "image4": ("IMAGE",),
                 "mask": ("MASK",),
-                "model": (["gpt-image-1.5", "gpt-image-1", "dall-e-2"], {"default": "gpt-image-1.5"}),
+                "model": (["gpt-image-2-all", "gpt-image-1.5", "gpt-image-1", "dall-e-2"], {"default": "gpt-image-2-all"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1}),
                 "quality": (["auto", "high", "medium", "low"], {"default": "auto"}),
                 "size": (["auto", "1024x1024", "1536x1024", "1024x1536"], {"default": "auto"}),
