@@ -1,6 +1,14 @@
 # 简介
 该节点可以在 ComfyUI 中使用各种主流商业模型绘图节点，目前后端是使用**云雾 API** 提供的 API 支持。可以通过这个链接进行注册和使用：[https://www.cocode.icu/](https://www.cocode.icu/)
 
+## 项目关注度
+
+[![GitHub 项目关注度：最近七天访问和克隆趋势](https://raw.githubusercontent.com/jiaqianjing/ComfyUI-MidjourneyHub/metrics/summary.svg)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md)
+
+[完整趋势报告](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md) · [历史周报](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/tree/metrics/weekly) · [自动采集状态](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml)
+
+每天北京时间 09:17 自动更新（调度和图片缓存可能延迟），每周一归档周报。按 UTC 完整日统计；克隆量不代表实际用户数。
+
 ## 更新
 * 2026.05.03 更新 openai **[GPT Image Generate]** 和 **[GPT Image Edit]** 节点，新增 `gpt-image-2-all` 模型支持（默认模型）
 * 2026.01.22 更新 openai **[GPT Image Edit]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1.5` 

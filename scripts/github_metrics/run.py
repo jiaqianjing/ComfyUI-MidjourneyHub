@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from api import collect
+from card import render_card
 from report import render
 from storage import read_snapshots, save_json
 
@@ -24,7 +25,9 @@ def main():
     snapshot = collect("jiaqianjing/ComfyUI-MidjourneyHub", now)
     root = args.output
     save_json(root / "snapshots" / (now.strftime("%Y-%m-%dT%H%M%S%fZ") + ".json"), snapshot)
-    report = render(read_snapshots(root), now.date())
+    snapshots = read_snapshots(root)
+    report = render(snapshots, now.date())
+    (root / "summary.svg").write_text(render_card(snapshots, now.date()), encoding="utf-8")
     (root / "latest.md").write_text(report, encoding="utf-8")
     if args.weekly:
         weekly = root / "weekly"
