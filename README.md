@@ -11,7 +11,20 @@
 
 **推广合作**：欢迎模型/API 服务商洽谈赞助与推广合作，可通过 [GitHub Issue](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/issues/new?title=推广合作) 联系。
 
+## 模型兼容说明
+
+| 节点 | 模型 | 参数说明 |
+| --- | --- | --- |
+| GPT Image 生成 / 编辑 | 原有 2-all、1.5、1；新增 `gpt-image-2.5-flare`、`gpt-image-2.5-sunburst` | 2.5 可选 `xhigh` / `max` 及更大尺寸；兼容 URL 和 Base64 图片返回 |
+| Gemini 生成 / 编辑 | 默认 `gemini-3-pro-image-preview` | 保留 1K / 2K 和原有工作流 |
+| Gemini 生成 / 编辑（实验） | `gemini-3.1-flash-lite-image`（Nano Banana 2 Lite） | 仅支持 1K；云雾文档标为“开发中”，账号渠道可能尚未开放 |
+
+模型选择位于节点可选参数中。参数下拉展示全部选项，执行前按模型校验；旧模型选择 2.5 专属质量/尺寸、或 Lite 选择 2K 时，会明确报错，不会静默替换参数。GPT 默认仍为 `gpt-image-2-all`，Gemini 默认仍为 Pro。旧工作流未传 GPT model 时也保留原来的 1.5 行为。
+
+本次适配依据云雾的 [GPT 2.5 生成](https://yunwu.apifox.cn/api-513295251)、[GPT 2.5 编辑](https://yunwu.apifox.cn/api-513297453)、[Gemini Lite](https://yunwu.apifox.cn/api-480926826) 文档。已通过离线请求和响应测试；尚未完成真实出图验证，具体可用性取决于 API Token 分组和渠道。Midjourney 版本列表本次未变更。
+
 ## 更新
+* 2026.11.03 新增云雾 GPT Image 2.5 生成/编辑适配，以及 Gemini 可选模型和 Nano Banana 2 Lite 实验支持。
 * 2026.05.03 更新 openai **[GPT Image Generate]** 和 **[GPT Image Edit]** 节点，新增 `gpt-image-2-all` 模型支持（默认模型）
 * 2026.01.22 更新 openai **[GPT Image Edit]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1.5` 
 * 2026.01.22 更新 openai **[GPT Image Generate]** 节点，使用 Openai 最新的绘图模型 `gpt-image-1.5` 

@@ -1,12 +1,13 @@
+"""ComfyUI GPT image node: prompt/options -> IMAGE batch; calls Yunwu HTTP API."""
 import torch
-import base64
 import numpy as np
 from PIL import Image
 from io import BytesIO
 import requests
-import json
 
 from .utils import load_config, init_logger
+from .image_model_options import GPT_MODELS, GPT_QUALITIES, GPT_SIZES, GPT_25_MODELS, validate_gpt_options
+from .image_response import decode_gpt_images
 
 
 class GPTImageEditNode:
@@ -49,10 +50,10 @@ class GPTImageEditNode:
                 "image3": ("IMAGE",),
                 "image4": ("IMAGE",),
                 "mask": ("MASK",),
-                "model": (["gpt-image-2-all", "gpt-image-1.5", "gpt-image-1", "dall-e-2"], {"default": "gpt-image-2-all"}),
+                "model": (GPT_MODELS + ["dall-e-2"], {"default": "gpt-image-2-all"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1}),
-                "quality": (["auto", "high", "medium", "low"], {"default": "auto"}),
-                "size": (["auto", "1024x1024", "1536x1024", "1024x1536"], {"default": "auto"}),
+                "quality": (GPT_QUALITIES, {"default": "auto"}),
+                "size": (GPT_SIZES, {"default": "auto"}),
             }
         }
 
@@ -107,6 +108,7 @@ class GPTImageEditNode:
              model: str = "gpt-image-1.5", n: int = 1,
              quality: str = "auto", size: str = "auto"):
         """根据 prompt 和参考图片调用 API 生成新图片。"""
+        validate_gpt_options(model, n, quality, size, editing=True)
         try:
             url = f"{self.base_url}/images/edits"
 
@@ -139,6 +141,9 @@ class GPTImageEditNode:
                 "response_format": "b64_json"  # 强制返回 base64
             }
 
+            if model in GPT_25_MODELS:
+                payload.pop("response_format")  # Not documented for 2.5 edits.
+
             headers = {
                 'Accept': 'application/json',
                 'Authorization': f'Bearer {self.api_key}'
@@ -149,31 +154,7 @@ class GPTImageEditNode:
             response = requests.post(url, headers=headers, data=payload, files=files, timeout=120)
             response.raise_for_status()
 
-            data = response.json()
-            if not data or 'data' not in data:
-                 raise RuntimeError(f"Invalid response from GPT-Image-1 API: {response.text}")
-
-            # 处理返回的 base64 数据
-            tensors = []
-            for item in data['data']:
-                b64_data = item.get('b64_json')
-                if not b64_data:
-                    raise RuntimeError("No base64 image data in response")
-
-                image_bytes = base64.b64decode(b64_data)
-                img = Image.open(BytesIO(image_bytes)).convert("RGB")
-                img_np = np.array(img)
-
-                # 转换为 ComfyUI 需要的 Tensor 格式
-                tensor = torch.from_numpy(img_np).float() / 255.0
-                tensors.append(tensor)
-
-            if not tensors:
-                 raise RuntimeError("No images were generated from the API")
-
-            img_tensor = torch.stack(tensors, dim=0)  # 添加 batch 维
-
-            return (img_tensor,)
+            return (decode_gpt_images(response.json()),)
         except Exception as e:
             self.logger.error(f"Error in GPTImageEditNode: {str(e)}")
             raise

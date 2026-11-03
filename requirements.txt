@@ -4,3 +4,4 @@ torch
 openai
 aiohttp
 nest_asyncio
+requests
