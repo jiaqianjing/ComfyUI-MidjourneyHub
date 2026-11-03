@@ -1,0 +1,58 @@
+# Inputs: schedule/manual dispatch. Outputs: archive branch and job summary.
+name: GitHub metrics
+on:
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: github-metrics
+  cancel-in-progress: false
+jobs:
+  collect:
+    if: github.repository == 'jiaqianjing/ComfyUI-MidjourneyHub'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/branches" --paginate --jq '.[].name' | grep -qx metrics; then
+            git fetch origin metrics
+            git worktree add metrics origin/metrics
+          else
+            mkdir metrics
+            cd metrics
+            git init -b metrics
+            git remote add origin "https://github.com/$GITHUB_REPOSITORY.git"
+          fi
+      - name: Collect and render
+        env:
+          GH_TOKEN: ${{ secrets.METRICS_TOKEN || github.token }}
+          METRICS_TRAFFIC: ${{ secrets.METRICS_TOKEN != '' }}
+        run: |
+          python3 -m unittest discover -s tests -p 'test_github_metrics.py'
+          if [ "$(date -u +%u)" = 1 ] || [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            python3 scripts/github_metrics/run.py --weekly
+          else
+            python3 scripts/github_metrics/run.py
+          fi
+          cat metrics/latest.md >> "$GITHUB_STEP_SUMMARY"
+          if [ "$METRICS_TRAFFIC" != true ]; then
+            echo 'Add METRICS_TOKEN (Administration: read) to enable views and clones.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Save archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth setup-git
+          cd metrics
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add snapshots latest.md
+          if [ -d weekly ]; then git add weekly; fi
+          git diff --cached --quiet || git commit -m 'Update GitHub metrics'
+          git push origin HEAD:metrics
