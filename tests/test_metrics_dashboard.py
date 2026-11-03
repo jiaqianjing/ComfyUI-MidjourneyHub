@@ -15,20 +15,19 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(svg.count('stroke-width="2.5"'), 2)
         self.assertEqual(svg.count('<circle'), 2)
 
-    def test_empty_data_and_xml_escaping(self):
+    def test_missing_data_is_explicit(self):
         snapshot = {'collected_at': '2026-11-03T09:00:00Z',
-                    'counts': {'stars': 0, 'forks': 0},
-                    'traffic': {'popular/referrers': [{'referrer': 'A&B <test>', 'count': 1}]}}
+                    'counts': {'stars': 0, 'forks': 0}, 'traffic': {}}
         svg = render_card([snapshot], date(2026, 11, 3))
         ET.fromstring(svg)
-        self.assertIn('A&amp;B &lt;test&gt;', svg)
-        self.assertIn('0 observed days', svg)
-        self.assertIn('Awaiting baseline', svg)
+        self.assertIn('暂无数据', svg)
+        self.assertIn('等待流量数据', svg)
 
-    def test_single_day_stars_render(self):
-        snapshot = {'collected_at': '2026-11-03T09:00:00Z',
-                    'counts': {'stars': 2, 'forks': 0}, 'traffic': {},
-                    'star_history': [{'week': 1793491200, 'total': 2}]}
-        svg = render_card([snapshot], date(2026, 11, 3))
-        ET.fromstring(svg)
-        self.assertNotIn('Star history not available yet', svg)
+    def test_partial_totals_are_not_presented_as_full_month(self):
+        from card import total_label, window_series
+        snapshot = {'collected_at': '2026-11-03T09:00:00Z', 'traffic': {
+            'views': {'views': [{'timestamp': '2026-11-02T00:00:00Z', 'count': 5}]}}}
+        points = window_series([snapshot], 'views', date(2026, 11, 3))
+        self.assertEqual(len(points), 30)
+        self.assertEqual(total_label(points), '5（已采集 1/30 天）')
+        self.assertEqual(total_label([(i, 0) for i in range(30)]), '0')

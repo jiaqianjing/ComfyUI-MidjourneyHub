@@ -26,6 +26,7 @@ Star/Fork 净增长为边界日期快照差。来源、热门页面是滚动 14 
 - https://docs.github.com/en/rest/metrics/traffic
 - https://docs.github.com/en/actions/concepts/billing-and-usage
 
-README 看板包含 30 天访问/克隆折线、GitHub 周度 Star 历史累计曲线、14 天来源条形图。
-Star 历史按周分页采集，不读取用户列表；周界线由 GitHub 定义，不保证 UTC。
+README 仅显示一行核心数据和一张共用纵轴的 30 天访问/克隆折线图。
+不足 30 天的总数明确标注已采集天数，不作为完整月流量展示；详细来源和趋势保留在报告中。
 图表由标准库生成 SVG，随每日任务更新 summary.svg，无需外部图表服务。
+推广合作通过 GitHub Issue 联系，未发布个人邮箱。

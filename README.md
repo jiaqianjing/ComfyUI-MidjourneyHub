@@ -1,17 +1,15 @@
 # 简介
 该节点可以在 ComfyUI 中使用各种主流商业模型绘图节点，目前后端是使用**云雾 API** 提供的 API 支持。可以通过这个链接进行注册和使用：[https://www.cocode.icu/](https://www.cocode.icu/)
 
-## 项目关注度
+## 项目概况
 
-[![Stars](https://img.shields.io/github/stars/jiaqianjing/ComfyUI-MidjourneyHub?style=flat-square&color=fbbf24)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/stargazers)
-[![Forks](https://img.shields.io/github/forks/jiaqianjing/ComfyUI-MidjourneyHub?style=flat-square&color=a78bfa)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/forks)
-[![Daily metrics](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml/badge.svg)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml)
+[![项目近 30 天访问与克隆趋势](https://raw.githubusercontent.com/jiaqianjing/ComfyUI-MidjourneyHub/metrics/summary.svg)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md)
 
-[![GitHub 项目关注度：最近七天访问和克隆趋势](https://raw.githubusercontent.com/jiaqianjing/ComfyUI-MidjourneyHub/metrics/summary.svg)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md)
+[详细报告与流量来源](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md) · [历史周报](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/tree/metrics/weekly)
 
-[完整趋势报告](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md) · [历史周报](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/tree/metrics/weekly) · [自动采集状态](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml)
+每天自动更新，按 UTC 完整日统计。数据不足 30 天时标注已采集天数；访问和克隆仅用于观察项目关注度，不代表广告曝光或实际用户数。
 
-每天北京时间 09:17 自动更新（调度和图片缓存可能延迟），每周一归档周报。趋势图展示最近 30 天，未采集日期留空；按 UTC 完整日统计，克隆量不代表实际用户数。Star 曲线根据 GitHub 周度历史统计累计绘制，周界线由 GitHub 定义。
+**推广合作**：欢迎模型/API 服务商洽谈赞助与推广合作，可通过 [GitHub Issue](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/issues/new?title=推广合作) 联系。
 
 ## 更新
 * 2026.05.03 更新 openai **[GPT Image Generate]** 和 **[GPT Image Edit]** 节点，新增 `gpt-image-2-all` 模型支持（默认模型）

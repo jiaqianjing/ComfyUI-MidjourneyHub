@@ -10,10 +10,9 @@ import os
 import subprocess
 
 
-def get(path, paginated=False):
+def get(path):
     result = subprocess.run(
-        (["gh", "api", path, "--paginate", "--slurp", "-H",
-          "Accept: application/vnd.github+json"] if paginated else ["gh", "api", path]), capture_output=True, text=True, timeout=90
+        ["gh", "api", path], capture_output=True, text=True, timeout=90
     )
     if result.returncode:
         raise RuntimeError("GitHub API failed for " + path + ": " + result.stderr)
@@ -27,8 +26,6 @@ def collect(repo, now):
         "schema_version": 1,
         "repository": repo,
         "collected_at": now.isoformat(),
-        "star_history": [item for page in get(
-            base + "/stargazers/history?per_page=30", paginated=True) for item in page],
         "counts": {
             "stars": metadata["stargazers_count"],
             "forks": metadata["forks_count"],
