@@ -34,7 +34,7 @@ jobs:
           GH_TOKEN: ${{ secrets.METRICS_TOKEN || github.token }}
           METRICS_TRAFFIC: ${{ secrets.METRICS_TOKEN != '' }}
         run: |
-          python3 -m unittest discover -s tests -p 'test_github_metrics.py'
+          python3 -m unittest discover -s tests -p 'test*metrics*.py'
           if [ "$(date -u +%u)" = 1 ] || [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
             python3 scripts/github_metrics/run.py --weekly
           else

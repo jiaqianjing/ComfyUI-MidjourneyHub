@@ -3,11 +3,15 @@
 
 ## 项目关注度
 
+[![Stars](https://img.shields.io/github/stars/jiaqianjing/ComfyUI-MidjourneyHub?style=flat-square&color=fbbf24)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/stargazers)
+[![Forks](https://img.shields.io/github/forks/jiaqianjing/ComfyUI-MidjourneyHub?style=flat-square&color=a78bfa)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/forks)
+[![Daily metrics](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml/badge.svg)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml)
+
 [![GitHub 项目关注度：最近七天访问和克隆趋势](https://raw.githubusercontent.com/jiaqianjing/ComfyUI-MidjourneyHub/metrics/summary.svg)](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md)
 
 [完整趋势报告](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/blob/metrics/latest.md) · [历史周报](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/tree/metrics/weekly) · [自动采集状态](https://github.com/jiaqianjing/ComfyUI-MidjourneyHub/actions/workflows/github-metrics.yml)
 
-每天北京时间 09:17 自动更新（调度和图片缓存可能延迟），每周一归档周报。按 UTC 完整日统计；克隆量不代表实际用户数。
+每天北京时间 09:17 自动更新（调度和图片缓存可能延迟），每周一归档周报。趋势图展示最近 30 天，未采集日期留空；按 UTC 完整日统计，克隆量不代表实际用户数。Star 曲线根据当前仍在关注的用户的加星日期绘制，不包含已经取消的 Star。
 
 ## 更新
 * 2026.05.03 更新 openai **[GPT Image Generate]** 和 **[GPT Image Edit]** 节点，新增 `gpt-image-2-all` 模型支持（默认模型）
