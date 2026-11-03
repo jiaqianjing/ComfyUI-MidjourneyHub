@@ -3,8 +3,7 @@
 CALLING SPEC: render_card(snapshots, end: date) -> standalone SVG string.
 Pure function; uses complete UTC days, retains gaps, no network or file I/O.
 """
-from collections import Counter
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from charts import box, line_chart, text
 from report import total, traffic_days
@@ -45,17 +44,18 @@ def render_card(snapshots, end):
                   text(x+20, 318, f'30-day window · {coverage} observed days · gaps = unavailable', 11),
                   line_chart(points, x+52, 340, 378, 140, color, (str(dates[0])[5:], str(dates[-1])[5:]))]
     parts += [box(32, 546, 456, 260), text(52, 576, 'The star timeline', 18, '#f1f5f9', 600),
-              text(52, 598, 'Current stargazers by date starred · unstars not reconstructed', 10)]
-    history = latest.get('star_dates', [])
+              text(52, 598, 'Cumulative weekly stars reported by GitHub', 10)]
+    history = latest.get('star_history', [])
     if history:
-        daily = Counter(item[:10] for item in history)
-        first = date.fromisoformat(min(daily))
-        points, running = [(0, 0)], 0
-        for day, count in sorted(daily.items()):
-            running += count
-            points.append(((date.fromisoformat(day)-first).days, running))
-        points.append(((end-first).days, running))
-        parts.append(line_chart(points, 84, 620, 378, 140, '#fbbf24', (str(first), str(end)), step=True))
+        weeks = sorted(history, key=lambda row: row['week'])
+        first = datetime.fromtimestamp(weeks[0]['week'], timezone.utc).date()
+        points, running = [], 0
+        for week in weeks:
+            running += week['total']
+            day = datetime.fromtimestamp(week['week'], timezone.utc).date()
+            points.append(((day-first).days, running))
+        last = datetime.fromtimestamp(weeks[-1]['week'], timezone.utc).date()
+        parts.append(line_chart(points, 84, 620, 378, 140, '#fbbf24', (str(first), str(last)), step=True))
     else:
         parts.append(text(52, 690, 'Star history not available yet', 14))
     parts += [box(512, 546, 456, 260), text(532, 576, 'Where discovery starts', 18, '#f1f5f9', 600),

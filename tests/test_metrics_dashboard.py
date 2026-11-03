@@ -28,7 +28,7 @@ class DashboardTests(unittest.TestCase):
     def test_single_day_stars_render(self):
         snapshot = {'collected_at': '2026-11-03T09:00:00Z',
                     'counts': {'stars': 2, 'forks': 0}, 'traffic': {},
-                    'star_dates': ['2026-11-03T01:00:00Z', '2026-11-03T02:00:00Z']}
+                    'star_history': [{'week': 1793491200, 'total': 2}]}
         svg = render_card([snapshot], date(2026, 11, 3))
         ET.fromstring(svg)
         self.assertNotIn('Star history not available yet', svg)
